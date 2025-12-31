@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChefHat, RefreshCw } from 'lucide-react';
 import { useMealStore } from '@/store/useMealStore';
-import { fetchCategories, fetchAreas, generateWeeklyPlan } from '@/services/api';
+import { fetchCategories, fetchAreas, generateWeeklyPlan, Meal } from '@/services/api';
 import { RecipeModal } from '@/components/RecipeModal';
 
 export default function Home() {
@@ -11,8 +11,15 @@ export default function Home() {
 
   const [categories, setCategories] = useState<string[]>([]);
   const [areas, setAreas] = useState<string[]>([]);
-  const [filterType, setFilterType] = useState<'none' | 'category' | 'area' | 'diet'>('none');
-  const [filterValue, setFilterValue] = useState('');
+
+  // New multi-filter system
+  const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
+  const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>(['lunch', 'dinner']);
+  const [selectedDays, setSelectedDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
+
+  const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Dessert'];
+  const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   // Popular diet plans with keyword mappings
   const diets = [
@@ -37,22 +44,69 @@ export default function Home() {
   const handleGeneratePlan = async () => {
     setIsLoading(true);
     try {
-      let finalFilterType: 'category' | 'area' | 'none' = filterType === 'diet' ? 'category' : filterType;
-      let finalFilterValue = filterValue;
+      // Build category filters from selected diets
+      const categoryFilters: string[] = [];
+      selectedDiets.forEach(dietName => {
+        const diet = diets.find(d => d.name === dietName);
+        if (diet) {
+          categoryFilters.push(...diet.keywords);
+        }
+      });
 
-      // Handle diet filter by mapping to category
-      if (filterType === 'diet' && filterValue) {
-        const selectedDiet = diets.find(d => d.name === filterValue);
-        if (selectedDiet && selectedDiet.keywords.length > 0) {
-          // Pick a random keyword from the diet
-          const randomKeyword = selectedDiet.keywords[Math.floor(Math.random() * selectedDiet.keywords.length)];
-          finalFilterType = 'category';
-          finalFilterValue = randomKeyword;
+      // Combine with selected cuisines as area filters
+      const areaFilters = [...selectedCuisines];
+
+      // Generate a larger pool of meals to filter from
+      const numMealsNeeded = selectedDays.length;
+      const poolSize = Math.max(20, numMealsNeeded * 2);
+      const mealPool: Meal[] = [];
+
+      // Fetch meals based on filters or random
+      if (categoryFilters.length > 0 || areaFilters.length > 0) {
+        // Use first category filter if available
+        const filterType = categoryFilters.length > 0 ? 'category' : (areaFilters.length > 0 ? 'area' : 'none');
+        const filterValue = categoryFilters.length > 0 ? categoryFilters[0] : (areaFilters.length > 0 ? areaFilters[0] : '');
+
+        const meals = await generateWeeklyPlan(filterType, filterValue);
+        mealPool.push(...meals);
+
+        // If we need more meals, fetch additional random ones
+        while (mealPool.length < poolSize) {
+          const moreMeals = await generateWeeklyPlan('none', '');
+          mealPool.push(...moreMeals);
+        }
+      } else {
+        // No filters, get random meals
+        const meals = await generateWeeklyPlan('none', '');
+        mealPool.push(...meals);
+      }
+
+      // Filter meals by category and area
+      const filteredMeals = mealPool.filter(meal => {
+        const matchesCategory = categoryFilters.length === 0 ||
+          categoryFilters.includes(meal.strCategory);
+        const matchesArea = areaFilters.length === 0 ||
+          areaFilters.includes(meal.strArea);
+        return matchesCategory && matchesArea;
+      });
+
+      // Create a meals array for all 7 days
+      const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const mealsForWeek: Meal[] = [];
+
+      let mealIndex = 0;
+      for (let i = 0; i < 7; i++) {
+        const day = allDays[i];
+        if (selectedDays.includes(day) && mealIndex < filteredMeals.length) {
+          mealsForWeek.push(filteredMeals[mealIndex]);
+          mealIndex++;
+        } else {
+          // Push a placeholder - the store will convert to null
+          // For now, just skip and let the store handle it
         }
       }
 
-      const meals = await generateWeeklyPlan(finalFilterType, finalFilterValue);
-      setWeeklyPlan(meals);
+      setWeeklyPlan(mealsForWeek);
     } catch (error) {
       console.error('Failed to generate plan:', error);
     } finally {
@@ -60,9 +114,28 @@ export default function Home() {
     }
   };
 
-  const handleFilterTypeChange = (type: 'none' | 'category' | 'area' | 'diet') => {
-    setFilterType(type);
-    setFilterValue('');
+  const toggleMealType = (type: string) => {
+    setSelectedMealTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const toggleDay = (day: string) => {
+    setSelectedDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
+
+  const toggleDiet = (dietName: string) => {
+    setSelectedDiets(prev =>
+      prev.includes(dietName) ? prev.filter(d => d !== dietName) : [...prev, dietName]
+    );
+  };
+
+  const toggleCuisine = (cuisine: string) => {
+    setSelectedCuisines(prev =>
+      prev.includes(cuisine) ? prev.filter(c => c !== cuisine) : [...prev, cuisine]
+    );
   };
 
   return (
@@ -80,99 +153,94 @@ export default function Home() {
           </div>
 
           {/* Filters */}
-          <div className="px-4 pb-5 space-y-3">
-            {/* Filter Type */}
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                onClick={() => handleFilterTypeChange('none')}
-                className={`py-2.5 px-2 rounded-xl font-bold text-xs transition-all transform active:scale-95 ${
-                  filterType === 'none'
-                    ? 'bg-white text-purple-600 shadow-md scale-105'
-                    : 'bg-white/20 text-white backdrop-blur-sm hover:bg-white/30'
-                }`}
-              >
-                Random
-              </button>
-              <button
-                onClick={() => handleFilterTypeChange('diet')}
-                className={`py-2.5 px-2 rounded-xl font-bold text-xs transition-all transform active:scale-95 ${
-                  filterType === 'diet'
-                    ? 'bg-white text-purple-600 shadow-md scale-105'
-                    : 'bg-white/20 text-white backdrop-blur-sm hover:bg-white/30'
-                }`}
-              >
-                Diet
-              </button>
-              <button
-                onClick={() => handleFilterTypeChange('category')}
-                className={`py-2.5 px-2 rounded-xl font-bold text-xs transition-all transform active:scale-95 ${
-                  filterType === 'category'
-                    ? 'bg-white text-purple-600 shadow-md scale-105'
-                    : 'bg-white/20 text-white backdrop-blur-sm hover:bg-white/30'
-                }`}
-              >
-                Category
-              </button>
-              <button
-                onClick={() => handleFilterTypeChange('area')}
-                className={`py-2.5 px-2 rounded-xl font-bold text-xs transition-all transform active:scale-95 ${
-                  filterType === 'area'
-                    ? 'bg-white text-purple-600 shadow-md scale-105'
-                    : 'bg-white/20 text-white backdrop-blur-sm hover:bg-white/30'
-                }`}
-              >
-                Cuisine
-              </button>
+          <div className="px-4 pb-5 space-y-4">
+            {/* Meal Types */}
+            <div>
+              <label className="block text-white text-xs font-bold uppercase tracking-wide mb-2">
+                Meal Types
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {mealTypes.map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => toggleMealType(type.toLowerCase())}
+                    className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all transform active:scale-95 ${
+                      selectedMealTypes.includes(type.toLowerCase())
+                        ? 'bg-white text-purple-600 shadow-md'
+                        : 'bg-white/20 text-white backdrop-blur-sm'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Filter Value */}
-            {filterType === 'category' && (
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full py-3 px-4 rounded-xl bg-white border-2 border-white/30 text-gray-900 font-bold shadow-lg focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
-                style={{ minHeight: '48px' }}
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
+            {/* Days */}
+            <div>
+              <label className="block text-white text-xs font-bold uppercase tracking-wide mb-2">
+                Days
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {allDays.map((day) => (
+                  <button
+                    key={day}
+                    onClick={() => toggleDay(day)}
+                    className={`py-2.5 px-2 rounded-xl font-bold text-[10px] transition-all transform active:scale-95 ${
+                      selectedDays.includes(day)
+                        ? 'bg-white text-purple-600 shadow-md'
+                        : 'bg-white/20 text-white backdrop-blur-sm'
+                    }`}
+                  >
+                    {day.slice(0, 3)}
+                  </button>
                 ))}
-              </select>
-            )}
+              </div>
+            </div>
 
-            {filterType === 'area' && (
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full py-3 px-4 rounded-xl bg-white border-2 border-white/30 text-gray-900 font-bold shadow-lg focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
-                style={{ minHeight: '48px' }}
-              >
-                <option value="">Select Cuisine</option>
-                {areas.map((area) => (
-                  <option key={area} value={area}>
-                    {area}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {filterType === 'diet' && (
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full py-3 px-4 rounded-xl bg-white border-2 border-white/30 text-gray-900 font-bold shadow-lg focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
-                style={{ minHeight: '48px' }}
-              >
-                <option value="">Select Diet Plan</option>
+            {/* Diet Plans */}
+            <div>
+              <label className="block text-white text-xs font-bold uppercase tracking-wide mb-2">
+                Diet Plans (Optional)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
                 {diets.map((diet) => (
-                  <option key={diet.name} value={diet.name}>
+                  <button
+                    key={diet.name}
+                    onClick={() => toggleDiet(diet.name)}
+                    className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all transform active:scale-95 ${
+                      selectedDiets.includes(diet.name)
+                        ? 'bg-white text-orange-600 shadow-md'
+                        : 'bg-white/20 text-white backdrop-blur-sm'
+                    }`}
+                  >
                     {diet.name}
-                  </option>
+                  </button>
                 ))}
-              </select>
-            )}
+              </div>
+            </div>
+
+            {/* Cuisines */}
+            <div>
+              <label className="block text-white text-xs font-bold uppercase tracking-wide mb-2">
+                Cuisines (Optional)
+              </label>
+              <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                {areas.map((area) => (
+                  <button
+                    key={area}
+                    onClick={() => toggleCuisine(area)}
+                    className={`py-2.5 px-2 rounded-xl font-bold text-[10px] transition-all transform active:scale-95 ${
+                      selectedCuisines.includes(area)
+                        ? 'bg-white text-blue-600 shadow-md'
+                        : 'bg-white/20 text-white backdrop-blur-sm'
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Generate Button */}
             <button

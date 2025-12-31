@@ -142,7 +142,7 @@ export default function Home() {
     <>
       <div className="h-full flex flex-col bg-ios-gray-1">
         {/* Header */}
-        <div className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 safe-top shadow-lg">
+        <div className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 safe-top shadow-lg flex-shrink-0">
           <div className="px-4 py-5">
             <h1 className="text-3xl font-extrabold text-white flex items-center gap-3 drop-shadow-lg">
               <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -153,7 +153,7 @@ export default function Home() {
           </div>
 
           {/* Filters */}
-          <div className="px-4 pb-5 space-y-4">
+          <div className="px-4 pb-5 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
             {/* Meal Types */}
             <div>
               <label className="block text-white text-xs font-bold uppercase tracking-wide mb-2">

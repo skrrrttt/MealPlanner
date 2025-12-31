@@ -34,34 +34,38 @@ export function RecipeModal() {
         {/* Content */}
         <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(90vh - 72px)' }}>
           {/* Image */}
-          <div className="w-full aspect-square bg-ios-gray-1">
+          <div className="w-full aspect-video bg-gradient-to-br from-ios-blue/5 to-ios-gray-1">
             <img
               src={selectedMeal.strMealThumb}
               alt={selectedMeal.strMeal}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           </div>
 
           {/* Meal Info */}
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-5">
             {/* Tags */}
             <div className="flex gap-2 flex-wrap">
-              <span className="px-3 py-1 bg-ios-blue/10 text-ios-blue text-sm font-medium rounded-full">
+              <span className="px-3 py-1.5 bg-gradient-to-r from-ios-blue to-ios-blue/90 text-white text-sm font-semibold rounded-full shadow-sm">
                 {selectedMeal.strCategory}
               </span>
-              <span className="px-3 py-1 bg-ios-gray-2 text-gray-700 text-sm font-medium rounded-full">
+              <span className="px-3 py-1.5 bg-white border border-ios-gray-3 text-gray-700 text-sm font-medium rounded-full">
                 {selectedMeal.strArea}
               </span>
             </div>
 
             {/* Ingredients */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Ingredients</h3>
-              <div className="bg-ios-gray-1 rounded-ios p-4 space-y-2">
+              <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-1 h-5 bg-ios-blue rounded-full"></span>
+                Ingredients
+              </h3>
+              <div className="bg-white border border-ios-gray-2 rounded-ios divide-y divide-ios-gray-2 overflow-hidden">
                 {selectedMeal.ingredients.map((ingredient, index) => (
-                  <div key={index} className="flex justify-between items-center py-1">
+                  <div key={index} className="flex justify-between items-center px-4 py-3">
                     <span className="text-gray-900 font-medium">{ingredient.name}</span>
-                    <span className="text-gray-600 text-sm">{ingredient.measure}</span>
+                    <span className="text-ios-blue text-sm font-medium">{ingredient.measure}</span>
                   </div>
                 ))}
               </div>
@@ -69,9 +73,12 @@ export function RecipeModal() {
 
             {/* Instructions */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Instructions</h3>
-              <div className="bg-ios-gray-1 rounded-ios p-4">
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+              <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-1 h-5 bg-ios-blue rounded-full"></span>
+                Instructions
+              </h3>
+              <div className="bg-white border border-ios-gray-2 rounded-ios p-4">
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-[15px]">
                   {selectedMeal.strInstructions}
                 </p>
               </div>

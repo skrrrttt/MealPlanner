@@ -1,0 +1,46 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="115" fill="#007AFF"/>
+
+  <!-- Plate -->
+  <circle cx="256" cy="280" r="140" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="256" cy="280" r="125" fill="none" stroke="#E5E5EA" stroke-width="3"/>
+
+  <!-- Fork (Left) -->
+  <g transform="translate(160, 240)">
+    <rect x="18" y="0" width="8" height="100" rx="4" fill="#FFFFFF"/>
+    <rect x="10" y="0" width="4" height="40" rx="2" fill="#FFFFFF"/>
+    <rect x="16" y="0" width="4" height="40" rx="2" fill="#FFFFFF"/>
+    <rect x="22" y="0" width="4" height="40" rx="2" fill="#FFFFFF"/>
+    <rect x="28" y="0" width="4" height="40" rx="2" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Knife (Right) -->
+  <g transform="translate(310, 240)">
+    <rect x="12" y="0" width="8" height="100" rx="4" fill="#FFFFFF"/>
+    <path d="M 8 0 L 24 0 L 20 35 L 12 35 Z" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Chef Hat -->
+  <g transform="translate(256, 140)">
+    <!-- Hat base -->
+    <rect x="-45" y="35" width="90" height="25" rx="5" fill="#FFFFFF"/>
+    <!-- Hat puff circles -->
+    <circle cx="-30" cy="20" r="20" fill="#FFFFFF"/>
+    <circle cx="-10" cy="10" r="22" fill="#FFFFFF"/>
+    <circle cx="10" cy="10" r="22" fill="#FFFFFF"/>
+    <circle cx="30" cy="20" r="20" fill="#FFFFFF"/>
+    <circle cx="0" cy="5" r="24" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Food items on plate -->
+  <!-- Lettuce/Vegetable -->
+  <circle cx="235" cy="270" r="12" fill="#4CAF50" opacity="0.8"/>
+  <circle cx="245" cy="275" r="10" fill="#66BB6A" opacity="0.8"/>
+
+  <!-- Tomato -->
+  <circle cx="275" cy="275" r="11" fill="#F44336" opacity="0.85"/>
+
+  <!-- Carrot -->
+  <ellipse cx="260" cy="295" rx="8" ry="14" fill="#FF9800" opacity="0.8"/>
+</svg>

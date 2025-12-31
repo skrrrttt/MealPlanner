@@ -1,12 +1,25 @@
 'use client';
 
-import { ShoppingCart, Trash2, Check } from 'lucide-react';
+import { ShoppingCart, Trash2, Check, Apple, Fish, Milk, Wheat, Snowflake, Package, Sparkles, Droplet, Coffee } from 'lucide-react';
 import { useMealStore } from '@/store/useMealStore';
 import {
   getSortedCategories,
   getActiveItemCount,
   getCheckedItemCount,
 } from '@/services/listHelper';
+
+// Icon mapping for categories
+const categoryIcons: Record<string, any> = {
+  'Produce': Apple,
+  'Meat & Seafood': Fish,
+  'Dairy & Eggs': Milk,
+  'Bakery & Bread': Wheat,
+  'Frozen': Snowflake,
+  'Pantry & Dry Goods': Package,
+  'Spices & Seasonings': Sparkles,
+  'Oils & Condiments': Droplet,
+  'Beverages': Coffee,
+};
 
 export default function GroceryPage() {
   const { groceryList, toggleInPantry, toggleInCart, clearGroceryList } = useMealStore();
@@ -33,10 +46,17 @@ export default function GroceryPage() {
                 Grocery List
               </h1>
               {activeCount > 0 && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {activeCount} item{activeCount !== 1 ? 's' : ''} to buy
-                  {checkedCount > 0 && ` • ${checkedCount} in cart`}
-                </p>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600 mb-1.5">
+                    {checkedCount} of {activeCount} items collected
+                  </p>
+                  <div className="w-full h-2 bg-ios-gray-2 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-ios-blue to-ios-blue/80 transition-all duration-300"
+                      style={{ width: `${(checkedCount / activeCount) * 100}%` }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
             {sortedCategories.length > 0 && (
@@ -63,15 +83,18 @@ export default function GroceryPage() {
             </p>
           </div>
         ) : (
-          <div className="p-4 space-y-4">
-            {sortedCategories.map((category) => (
-              <div key={category} className="bg-white rounded-ios shadow-ios overflow-hidden">
-                {/* Category Header */}
-                <div className="bg-ios-gray-1 px-4 py-2 border-b border-ios-gray-2">
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-                    {category}
-                  </h3>
-                </div>
+          <div className="p-4 space-y-3">
+            {sortedCategories.map((category) => {
+              const CategoryIcon = categoryIcons[category] || ShoppingCart;
+              return (
+                <div key={category} className="bg-white rounded-ios-lg shadow-ios overflow-hidden border border-ios-gray-2">
+                  {/* Category Header */}
+                  <div className="bg-gradient-to-r from-ios-blue/5 to-transparent px-4 py-3 border-b border-ios-gray-2">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                      <CategoryIcon size={18} className="text-ios-blue" />
+                      {category}
+                    </h3>
+                  </div>
 
                 {/* Items */}
                 <div className="divide-y divide-ios-gray-2">
@@ -160,7 +183,8 @@ export default function GroceryPage() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Bottom Padding */}
             <div className="h-4"></div>

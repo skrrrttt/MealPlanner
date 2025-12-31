@@ -11,8 +11,18 @@ export default function Home() {
 
   const [categories, setCategories] = useState<string[]>([]);
   const [areas, setAreas] = useState<string[]>([]);
-  const [filterType, setFilterType] = useState<'none' | 'category' | 'area'>('none');
+  const [filterType, setFilterType] = useState<'none' | 'category' | 'area' | 'diet'>('none');
   const [filterValue, setFilterValue] = useState('');
+
+  // Popular diet plans with keyword mappings
+  const diets = [
+    { name: 'Mediterranean', keywords: ['Seafood', 'Italian', 'Greek', 'Spanish'] },
+    { name: 'Anti-Inflammatory', keywords: ['Seafood', 'Vegetarian', 'Vegan'] },
+    { name: 'Heart Healthy', keywords: ['Seafood', 'Vegetarian', 'Chicken'] },
+    { name: 'Low Carb', keywords: ['Seafood', 'Beef', 'Chicken', 'Pork'] },
+    { name: 'Plant Based', keywords: ['Vegetarian', 'Vegan'] },
+    { name: 'Gluten Free', keywords: ['Seafood', 'Beef', 'Chicken', 'Lamb'] },
+  ];
 
   // Load filters on mount
   useEffect(() => {
@@ -27,7 +37,21 @@ export default function Home() {
   const handleGeneratePlan = async () => {
     setIsLoading(true);
     try {
-      const meals = await generateWeeklyPlan(filterType, filterValue);
+      let finalFilterType: 'category' | 'area' | 'none' = filterType === 'diet' ? 'category' : filterType;
+      let finalFilterValue = filterValue;
+
+      // Handle diet filter by mapping to category
+      if (filterType === 'diet' && filterValue) {
+        const selectedDiet = diets.find(d => d.name === filterValue);
+        if (selectedDiet && selectedDiet.keywords.length > 0) {
+          // Pick a random keyword from the diet
+          const randomKeyword = selectedDiet.keywords[Math.floor(Math.random() * selectedDiet.keywords.length)];
+          finalFilterType = 'category';
+          finalFilterValue = randomKeyword;
+        }
+      }
+
+      const meals = await generateWeeklyPlan(finalFilterType, finalFilterValue);
       setWeeklyPlan(meals);
     } catch (error) {
       console.error('Failed to generate plan:', error);
@@ -36,7 +60,7 @@ export default function Home() {
     }
   };
 
-  const handleFilterTypeChange = (type: 'none' | 'category' | 'area') => {
+  const handleFilterTypeChange = (type: 'none' | 'category' | 'area' | 'diet') => {
     setFilterType(type);
     setFilterValue('');
   };
@@ -56,10 +80,10 @@ export default function Home() {
           {/* Filters */}
           <div className="px-4 pb-4 space-y-3">
             {/* Filter Type */}
-            <div className="flex gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => handleFilterTypeChange('none')}
-                className={`flex-1 py-2 px-4 rounded-ios font-medium text-sm transition-all ios-button-press ${
+                className={`py-2 px-2 rounded-ios font-medium text-xs transition-all ios-button-press ${
                   filterType === 'none'
                     ? 'bg-ios-blue text-white'
                     : 'bg-ios-gray-2 text-gray-700'
@@ -68,8 +92,18 @@ export default function Home() {
                 Random
               </button>
               <button
+                onClick={() => handleFilterTypeChange('diet')}
+                className={`py-2 px-2 rounded-ios font-medium text-xs transition-all ios-button-press ${
+                  filterType === 'diet'
+                    ? 'bg-ios-blue text-white'
+                    : 'bg-ios-gray-2 text-gray-700'
+                }`}
+              >
+                Diet
+              </button>
+              <button
                 onClick={() => handleFilterTypeChange('category')}
-                className={`flex-1 py-2 px-4 rounded-ios font-medium text-sm transition-all ios-button-press ${
+                className={`py-2 px-2 rounded-ios font-medium text-xs transition-all ios-button-press ${
                   filterType === 'category'
                     ? 'bg-ios-blue text-white'
                     : 'bg-ios-gray-2 text-gray-700'
@@ -79,7 +113,7 @@ export default function Home() {
               </button>
               <button
                 onClick={() => handleFilterTypeChange('area')}
-                className={`flex-1 py-2 px-4 rounded-ios font-medium text-sm transition-all ios-button-press ${
+                className={`py-2 px-2 rounded-ios font-medium text-xs transition-all ios-button-press ${
                   filterType === 'area'
                     ? 'bg-ios-blue text-white'
                     : 'bg-ios-gray-2 text-gray-700'
@@ -122,6 +156,22 @@ export default function Home() {
               </select>
             )}
 
+            {filterType === 'diet' && (
+              <select
+                value={filterValue}
+                onChange={(e) => setFilterValue(e.target.value)}
+                className="w-full py-3 px-4 rounded-ios bg-white border border-ios-gray-3 text-gray-900 font-medium"
+                style={{ minHeight: '44px' }}
+              >
+                <option value="">Select Diet Plan</option>
+                {diets.map((diet) => (
+                  <option key={diet.name} value={diet.name}>
+                    {diet.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
             {/* Generate Button */}
             <button
               onClick={handleGeneratePlan}
@@ -157,21 +207,22 @@ export default function Home() {
                   className="w-full text-left ios-button-press"
                 >
                   <div className="flex gap-3 p-3">
-                    <div className="w-20 h-20 flex-shrink-0 rounded-ios overflow-hidden bg-ios-gray-1">
+                    <div className="w-16 h-16 flex-shrink-0 rounded-ios overflow-hidden bg-gradient-to-br from-ios-blue/10 to-ios-blue/5 border border-ios-gray-2">
                       <img
                         src={dayPlan.meal.strMealThumb}
                         alt={dayPlan.meal.strMeal}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-semibold text-ios-blue uppercase tracking-wide mb-1">
                         {dayPlan.day}
                       </div>
-                      <h3 className="text-base font-bold text-gray-900 line-clamp-2 mb-1">
+                      <h3 className="text-sm font-bold text-gray-900 line-clamp-2 mb-1">
                         {dayPlan.meal.strMeal}
                       </h3>
-                      <div className="flex gap-2 text-xs text-gray-600">
+                      <div className="flex gap-2 text-xs text-gray-500">
                         <span>{dayPlan.meal.strCategory}</span>
                         <span>•</span>
                         <span>{dayPlan.meal.strArea}</span>

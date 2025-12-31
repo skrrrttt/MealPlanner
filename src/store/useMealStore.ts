@@ -5,15 +5,20 @@ import { persist } from 'zustand/middleware';
 import { Meal } from '@/services/api';
 import { GroceryList, CategorizedIngredient, aggregateGroceryList } from '@/services/listHelper';
 
+export interface MealSlot {
+  type: 'breakfast' | 'lunch' | 'dinner' | 'dessert';
+  meal: Meal | null;
+}
+
 export interface DayPlan {
   day: string;
-  meal: Meal | null;
+  meals: MealSlot[];
 }
 
 interface MealStore {
   // Weekly Plan
   weeklyPlan: DayPlan[];
-  setWeeklyPlan: (meals: Meal[]) => void;
+  setWeeklyPlan: (plan: DayPlan[]) => void;
   clearWeeklyPlan: () => void;
 
   // Grocery List
@@ -36,34 +41,35 @@ export const useMealStore = create<MealStore>()(
   persist(
     (set, get) => ({
       // Initial State
-      weeklyPlan: DAYS.map((day) => ({ day, meal: null })),
+      weeklyPlan: DAYS.map((day) => ({ day, meals: [] })),
       groceryList: {},
       selectedMeal: null,
       isLoading: false,
 
       // Weekly Plan Actions
-      setWeeklyPlan: (meals: Meal[]) => {
-        const plan = DAYS.map((day, index) => ({
-          day,
-          meal: meals[index] || null,
-        }));
+      setWeeklyPlan: (plan: DayPlan[]) => {
         set({ weeklyPlan: plan });
 
         // Auto-generate grocery list when plan is updated
-        const groceryList = aggregateGroceryList(meals);
+        const allMeals = plan.flatMap(day =>
+          day.meals.map(slot => slot.meal).filter((m): m is Meal => m !== null)
+        );
+        const groceryList = aggregateGroceryList(allMeals);
         set({ groceryList });
       },
 
       clearWeeklyPlan: () => {
-        const emptyPlan = DAYS.map((day) => ({ day, meal: null }));
+        const emptyPlan = DAYS.map((day) => ({ day, meals: [] }));
         set({ weeklyPlan: emptyPlan, groceryList: {} });
       },
 
       // Grocery List Actions
       generateGroceryList: () => {
         const { weeklyPlan } = get();
-        const meals = weeklyPlan.map((d) => d.meal).filter((m): m is Meal => m !== null);
-        const groceryList = aggregateGroceryList(meals);
+        const allMeals = weeklyPlan.flatMap(day =>
+          day.meals.map(slot => slot.meal).filter((m): m is Meal => m !== null)
+        );
+        const groceryList = aggregateGroceryList(allMeals);
         set({ groceryList });
       },
 

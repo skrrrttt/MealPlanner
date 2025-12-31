@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChefHat, RefreshCw } from 'lucide-react';
-import { useMealStore } from '@/store/useMealStore';
+import { useMealStore, DayPlan, MealSlot } from '@/store/useMealStore';
 import { fetchCategories, fetchAreas, generateWeeklyPlan, Meal } from '@/services/api';
 import { RecipeModal } from '@/components/RecipeModal';
 
@@ -56,9 +56,12 @@ export default function Home() {
       // Combine with selected cuisines as area filters
       const areaFilters = [...selectedCuisines];
 
-      // Generate a larger pool of meals to filter from
-      const numMealsNeeded = selectedDays.length;
-      const poolSize = Math.max(20, numMealsNeeded * 2);
+      // Calculate how many meals we need
+      const numMealsPerDay = selectedMealTypes.length;
+      const numDays = selectedDays.length;
+      const totalMealsNeeded = numMealsPerDay * numDays;
+      const poolSize = Math.max(30, totalMealsNeeded * 2);
+
       const mealPool: Meal[] = [];
 
       // Fetch meals based on filters or random
@@ -77,36 +80,59 @@ export default function Home() {
         }
       } else {
         // No filters, get random meals
-        const meals = await generateWeeklyPlan('none', '');
-        mealPool.push(...meals);
-      }
-
-      // Filter meals by category and area
-      const filteredMeals = mealPool.filter(meal => {
-        const matchesCategory = categoryFilters.length === 0 ||
-          categoryFilters.includes(meal.strCategory);
-        const matchesArea = areaFilters.length === 0 ||
-          areaFilters.includes(meal.strArea);
-        return matchesCategory && matchesArea;
-      });
-
-      // Create a meals array for all 7 days
-      const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      const mealsForWeek: Meal[] = [];
-
-      let mealIndex = 0;
-      for (let i = 0; i < 7; i++) {
-        const day = allDays[i];
-        if (selectedDays.includes(day) && mealIndex < filteredMeals.length) {
-          mealsForWeek.push(filteredMeals[mealIndex]);
-          mealIndex++;
-        } else {
-          // Push a placeholder - the store will convert to null
-          // For now, just skip and let the store handle it
+        while (mealPool.length < poolSize) {
+          const meals = await generateWeeklyPlan('none', '');
+          mealPool.push(...meals);
         }
       }
 
-      setWeeklyPlan(mealsForWeek);
+      // Filter meals by category, area, and meal type
+      const filteredMeals = mealPool.filter(meal => {
+        // Check diet/category filter
+        const matchesCategory = categoryFilters.length === 0 ||
+          categoryFilters.includes(meal.strCategory);
+
+        // Check cuisine/area filter
+        const matchesArea = areaFilters.length === 0 ||
+          areaFilters.includes(meal.strArea);
+
+        // Check meal type - dessert is a category, exclude it if not selected
+        const isDessert = meal.strCategory.toLowerCase() === 'dessert';
+        const matchesMealType = isDessert ? selectedMealTypes.includes('dessert') : true;
+
+        return matchesCategory && matchesArea && matchesMealType;
+      });
+
+      // Create plan with multiple meals per day
+      const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const plan: DayPlan[] = [];
+
+      let mealIndex = 0;
+      for (const day of allDays) {
+        const dayMeals: MealSlot[] = [];
+
+        if (selectedDays.includes(day)) {
+          // Add a meal for each selected meal type
+          for (const mealType of selectedMealTypes) {
+            if (mealIndex < filteredMeals.length) {
+              dayMeals.push({
+                type: mealType as 'breakfast' | 'lunch' | 'dinner' | 'dessert',
+                meal: filteredMeals[mealIndex]
+              });
+              mealIndex++;
+            } else {
+              dayMeals.push({
+                type: mealType as 'breakfast' | 'lunch' | 'dinner' | 'dessert',
+                meal: null
+              });
+            }
+          }
+        }
+
+        plan.push({ day, meals: dayMeals });
+      }
+
+      setWeeklyPlan(plan);
     } catch (error) {
       console.error('Failed to generate plan:', error);
     } finally {
@@ -278,50 +304,70 @@ export default function Home() {
             ];
             const gradientClass = dayColors[index % 7];
 
+            const mealTypeColors = {
+              breakfast: 'from-amber-400 to-orange-400',
+              lunch: 'from-emerald-400 to-teal-400',
+              dinner: 'from-blue-400 to-indigo-400',
+              dessert: 'from-pink-400 to-purple-400',
+            };
+
+            const hasMeals = dayPlan.meals.length > 0 && dayPlan.meals.some(slot => slot.meal !== null);
+
             return (
               <div
                 key={dayPlan.day}
-                className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] overflow-hidden border border-gray-200"
+                className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg overflow-hidden border border-gray-200"
               >
-                {dayPlan.meal ? (
-                  <button
-                    onClick={() => setSelectedMeal(dayPlan.meal)}
-                    className="w-full text-left"
-                  >
-                    <div className="flex gap-4 p-4">
-                      <div className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden shadow-md">
-                        <img
-                          src={dayPlan.meal.strMealThumb}
-                          alt={dayPlan.meal.strMeal}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-br from-black/10 to-transparent"></div>
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <div className={`inline-block self-start px-3 py-1 bg-gradient-to-r ${gradientClass} text-white text-xs font-bold uppercase tracking-wide rounded-full mb-2 shadow-md`}>
-                          {dayPlan.day}
-                        </div>
-                        <h3 className="text-base font-extrabold text-gray-900 line-clamp-2 mb-1.5 leading-tight">
-                          {dayPlan.meal.strMeal}
-                        </h3>
-                        <div className="flex gap-2 text-xs">
-                          <span className="px-2 py-0.5 bg-orange-100 text-orange-700 font-semibold rounded-full">
-                            {dayPlan.meal.strCategory}
-                          </span>
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-semibold rounded-full">
-                            {dayPlan.meal.strArea}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
+                {/* Day Header */}
+                <div className={`bg-gradient-to-r ${gradientClass} px-4 py-3`}>
+                  <h2 className="text-white text-sm font-bold uppercase tracking-wide">
+                    {dayPlan.day}
+                  </h2>
+                </div>
+
+                {/* Meals */}
+                {hasMeals ? (
+                  <div className="divide-y divide-gray-200">
+                    {dayPlan.meals.map((slot, slotIndex) => (
+                      slot.meal ? (
+                        <button
+                          key={slotIndex}
+                          onClick={() => setSelectedMeal(slot.meal)}
+                          className="w-full text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex gap-3 p-3">
+                            <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden shadow-sm">
+                              <img
+                                src={slot.meal.strMealThumb}
+                                alt={slot.meal.strMeal}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <div className={`inline-block self-start px-2 py-0.5 bg-gradient-to-r ${mealTypeColors[slot.type]} text-white text-[10px] font-bold uppercase tracking-wide rounded-full mb-1`}>
+                                {slot.type}
+                              </div>
+                              <h3 className="text-sm font-bold text-gray-900 line-clamp-1 mb-1 leading-tight">
+                                {slot.meal.strMeal}
+                              </h3>
+                              <div className="flex gap-1.5 text-[10px]">
+                                <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 font-semibold rounded-full">
+                                  {slot.meal.strCategory}
+                                </span>
+                                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 font-semibold rounded-full">
+                                  {slot.meal.strArea}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ) : null
+                    ))}
+                  </div>
                 ) : (
-                  <div className="p-5">
-                    <div className={`inline-block px-3 py-1 bg-gradient-to-r ${gradientClass} text-white text-xs font-bold uppercase tracking-wide rounded-full mb-2`}>
-                      {dayPlan.day}
-                    </div>
-                    <p className="text-sm text-gray-400 italic">No meal planned</p>
+                  <div className="p-4">
+                    <p className="text-sm text-gray-400 italic">No meals planned</p>
                   </div>
                 )}
               </div>

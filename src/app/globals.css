@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-ios-blue: #007aff;
+  --color-ios-gray-1: #f2f2f7;
+  --color-ios-gray-2: #e5e5ea;
+  --color-ios-gray-3: #d1d1d6;
+  --color-ios-gray-4: #c7c7cc;
+  --color-ios-gray-5: #aeaeb2;
+  --color-ios-gray-6: #8e8e93;
+
+  --radius-ios: 10px;
+  --radius-ios-lg: 20px;
+
+  --shadow-ios: 0 2px 8px rgb(0 0 0 / 0.1);
+}
 
 :root {
   --safe-area-inset-top: env(safe-area-inset-top);

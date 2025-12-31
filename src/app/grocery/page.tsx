@@ -37,22 +37,24 @@ export default function GroceryPage() {
   return (
     <div className="h-full flex flex-col bg-ios-gray-1">
       {/* Header */}
-      <div className="bg-white border-b border-ios-gray-2 safe-top">
-        <div className="px-4 py-4">
+      <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 safe-top shadow-lg">
+        <div className="px-4 py-5">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <ShoppingCart className="text-ios-blue" size={28} />
+            <div className="flex-1">
+              <h1 className="text-3xl font-extrabold text-white flex items-center gap-3 drop-shadow-lg mb-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <ShoppingCart size={32} strokeWidth={2.5} />
+                </div>
                 Grocery List
               </h1>
               {activeCount > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600 mb-1.5">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                  <p className="text-sm text-white/90 mb-2 font-semibold">
                     {checkedCount} of {activeCount} items collected
                   </p>
-                  <div className="w-full h-2 bg-ios-gray-2 rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-white/30 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-ios-blue to-ios-blue/80 transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 transition-all duration-500 shadow-lg"
                       style={{ width: `${(checkedCount / activeCount) * 100}%` }}
                     />
                   </div>
@@ -62,10 +64,10 @@ export default function GroceryPage() {
             {sortedCategories.length > 0 && (
               <button
                 onClick={handleClearList}
-                className="p-2 rounded-full bg-red-50 text-red-600 ios-button-press"
+                className="ml-3 p-3 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-all transform active:scale-95 shadow-lg"
                 aria-label="Clear list"
               >
-                <Trash2 size={20} />
+                <Trash2 size={24} strokeWidth={2.5} />
               </button>
             )}
           </div>
